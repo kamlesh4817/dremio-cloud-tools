@@ -38,8 +38,8 @@ coordinator:
   # CPU & Memory
   # Memory allocated to each coordinator, expressed in MB.
   # CPU allocated to each coordinator, expressed in CPU cores.
-  cpu: 8
-  memory: 32000
+  cpu: 15
+  memory: 52000
 
   # This count is used for slave coordinators only.
   # The total number of coordinators will always be count + 1.
@@ -157,14 +157,14 @@ executor:
   # CPU & Memory
   # Memory allocated to each executor, expressed in MB.
   # CPU allocated to each executor, expressed in CPU cores.
-  cpu: 2
-  memory: 12288
+  cpu: 3
+  memory: 12000
 
   # Engines
   # Engine names be 47 characters or less and be lowercase alphanumber characters or '-'.
   # Note: The number of executor pods will be the length of the array below * count.
   engines: ["default"]
-  count: 1
+  count: 2
 
   # Executor volume size.
   volumeSize: 128Gi
@@ -333,7 +333,7 @@ zookeeper:
   # CPU allocated to each zookeeper, expressed in CPU cores.
   cpu: 0.5
   memory: 1024
-  count: 1 #3 recommended
+  count: 3 #3 recommended for prod
 
   volumeSize: 10Gi
   storageClass: managed

@@ -1,21 +1,22 @@
 STEPS FOR AKS
+
 Create 3 node pools
-coordpool 1 node 16Cores/64GB
-execpool 2 nodes 4Cores/16GB
-zkpool 1 node 2Cores/8GB
+coordpool 1 node 16Cores/64GB - Standard_D16as_v4
+execpool 2 (Auto Scale to 5) nodes 4Cores/16GB - Standard_D4ds_v4
+zkpool 3 node 2Cores/4GB - Standard_B2s
 values.yaml values that work with above nodes
-coordinator:
-  cpu: 8
-  memory: 32000
-executor:
-  cpu: 2
+coordinator: ALWAYS ALLOCATE n-1 CPU for Coordinator CPU in values.yaml. Leave some memory for OS
+  cpu: 15
+  memory: 52000
+executor: ALWAYS ALLOCATE n-1 CPU for Coordinator CPU in values.yaml. Leave some memory for OS
+  cpu: 3
   memory: 12288
   engines: ["default"]
   count: 1
-zookeeper:
+zookeeper: ALWAYS ALLOCATE n-1 CPU for Coordinator CPU in values.yaml. Leave some memory for OS
   cpu: 0.5
   memory: 1024
-  count: 1 #3 recommended
+  count: 3
 
 Create storage account 
 Locally-redundant storage (LRS)
@@ -47,6 +48,7 @@ kubectl get secrets
 navigate to the charts/dremio_v2 directory
 helm list
 helm install kamlesh-tam .
+kubectl get services dremio-client
 
 kubectl get all
 kubectl get pods
@@ -96,6 +98,6 @@ kubectl -n kube-system logs -f deployment/kamlesh-tam
 
 kubectl get hpa -n dremio
 
-kubectl get services dremio-client
+
 
 kubectl logs <podname> like dremio-executor-0
