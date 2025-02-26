@@ -1,0 +1,508 @@
+#
+# Copyright (C) 2017-2019 Dremio Corporation. This file is confidential and private property.
+#
+
+# The Dremio image used in the cluster.
+#
+# It is *highly* recommended to update the version tag to
+# the version that you are using. This will ensure that all
+# the pods are using the same version of the software. If
+# you are directly consuming Dremio's images from Docker Hub,
+# when specifying which version to use, it is best to use the
+# full version tag in the form X.Y.Z (i.e. 21.1.0), as image
+# tags in the form X.Y (i.e. 21.1) are updated with the latest
+# patch version released.
+#
+# Using the image tag latest or in the form X.Y
+# will potentially cause Dremio to upgrade versions
+# automatically during redeployments and may negatively impact
+# the cluster.
+
+image: quay.io/dremio/dremio-ee
+imageTag: 25.2.0
+
+
+# Annotations, labels, node selectors, and tolerations
+#
+# annotations: Annotations are applied to the StatefulSets that are deployed.
+# podAnnotations: Pod annotations are applied to the pods that are deployed.
+# labels: Labels operate much like annotations.
+# podLabels: Labels that are applied to the pods that are deployed.
+# nodeSelector: Target pods to nodes based on labels set on the nodes. For more
+#   information, see https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+# tolerations: Tolerations allow the negation of taints that have been applied to some set of nodes
+#   in the Kubernetes cluster so that pods can be scheduled on those tainted nodes.
+annotations: {}
+podAnnotations: {}
+labels: {}
+podLabels: {}
+nodeSelector: {}
+tolerations: []
+
+# Dremio Coordinator
+coordinator:
+  # Resources allocated to each coordinator.
+  # See https://docs.dremio.com/current/get-started/cluster-deployments/deployment-models/standalone/system-requirements/#server-or-instance-hardware
+  resources:
+    requests:
+      cpu: "4"
+      memory: "20Gi"
+    limits:
+      memory: "20Gi"
+
+  count: 0
+
+  volumeSize: 50Gi
+
+  serviceAccount: dremio-coordinator
+
+  # Pod Security Context for all Dremio coordinators.
+  podSecurityContext:
+    fsGroup: 999
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+
+  # Security Context for all Dremio coordinator containers.
+  securityContext:
+    allowPrivilegeEscalation: false
+    privileged: false
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    capabilities:
+      drop:
+        - ALL
+
+  # Uncomment the lines below to use a custom set of extra startup parameters for the coordinator.
+  extraStartParams: >-
+    -Ddremio.log.path=/opt/dremio/data/log
+    -Dservices.web-admin.port=9010
+    -Dservices.web-admin.enabled=true
+    -Dservices.web-admin.host=0.0.0.0
+    -Ddremio.debug.sysopt.dremio.catalog.private.preview.enabled=true
+    -Ddremio.debug.sysopt.token.jwt-access-token.enabled=true
+    -Ddremio.debug.sysopt.auth.personal-access-tokens.enabled=true
+
+  nodeSelector:
+    cloud.google.com/gke-nodepool: coordpool
+
+  # Web UI
+  web:
+    port: 9047
+    tls:
+      # To enable TLS for the web UI, set the enabled flag to true and provide
+      # the appropriate Kubernetes TLS secret.
+      enabled: false
+
+      # To create a TLS secret, use the following command:
+      # kubectl create secret tls ${TLS_SECRET_NAME} --key ${KEY_FILE} --cert ${CERT_FILE}
+      secret: dremio-tls-secret-ui
+
+  # ODBC/JDBC Client
+  client:
+    port: 31010
+    tls:
+      # To enable TLS for the client endpoints, set the enabled flag to
+      # true and provide the appropriate Kubernetes TLS secret. Client
+      # endpoint encryption is available only on Dremio Enterprise
+      # Edition and should not be enabled otherwise.
+      enabled: false
+
+      # To create a TLS secret, use the following command:
+      # kubectl create secret tls ${TLS_SECRET_NAME} --key ${KEY_FILE} --cert ${CERT_FILE}
+      secret: dremio-tls-secret-client
+
+  # Flight Client
+  flight:
+    port: 32010
+    tls:
+      # To enable TLS for the Flight endpoints, set the enabled flag to
+      # true and provide the appropriate Kubernetes TLS secret.
+      enabled: false
+
+      # To create a TLS secret, use the following command:
+      # kubectl create secret tls ${TLS_SECRET_NAME} --key ${KEY_FILE} --cert ${CERT_FILE}
+      secret: dremio-tls-secret-flight
+
+  # Startup Probe
+  startupProbe:
+    # Max timeout for the probe is calculated as failureThreshold * periodSeconds
+    # failureThreshold: Maximum number of allowed failures
+    failureThreshold: 300
+    # periodSeconds: Polling frequency expressed in seconds
+    periodSeconds: 1
+
+  # Readiness Probe
+  readinessProbe:
+    # Max timeout for the probe is calculated as failureThreshold * periodSeconds
+    # failureThreshold: Maximum number of allowed failures
+    failureThreshold: 120
+    # periodSeconds: Polling frequency expressed in seconds
+    periodSeconds: 1
+
+# Dremio Executor
+executor:
+  # Resources allocated to each executor. Can be overridden on a per-engine basis, see below.
+  # See https://docs.dremio.com/current/get-started/cluster-deployments/deployment-models/standalone/system-requirements/#server-or-instance-hardware
+  resources:
+    requests:
+      cpu: "6"
+      memory: "25Gi"
+    limits:
+      memory: "25Gi"
+
+  # Engines
+  # Engine names must be 47 characters or less and be lowercase alphanumeric characters or '-'.
+  # Note: The number of executor pods will be the length of the array below * count.
+  engines: ["default"]
+  count: 1
+
+  # Executor volume size.
+  volumeSize: 128Gi
+
+  # Kubernetes Service Account
+  # Uncomment below to use a custom Kubernetes service account for executors.
+  #serviceAccount: ""
+
+  # Pod Security Context for all Dremio executors. Can be overridden on a per-engine basis, see below.
+  podSecurityContext:
+    fsGroup: 999
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+
+  # Security Context for all Dremio executor containers. Can be overridden on a per-engine basis, see below.
+  securityContext:
+    allowPrivilegeEscalation: false
+    privileged: false
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    capabilities:
+      drop:
+        - ALL
+
+  extraStartParams: >-
+    -Ddremio.log.path=/opt/dremio/data/log
+    -Dservices.web-admin.port=9010
+    -Dservices.web-admin.enabled=true
+    -Dservices.web-admin.host=0.0.0.0
+
+  nodeSelector:
+    cloud.google.com/gke-nodepool: execpool
+  
+  # Dremio C3
+  # Designed for use with NVMe storage devices, performance may be impacted when using
+  # persistent volume storage that resides far from the physical node.
+  cloudCache:
+    enabled: false
+    volumes:
+    - size: 100Gi
+
+# Zookeeper
+zookeeper:
+  # The Zookeeper image used in the cluster.
+  image: zookeeper
+  imageTag: 3.8.4-jre-17
+
+  # Resources allocated to each zookeeper pod.
+  # See https://docs.dremio.com/current/get-started/cluster-deployments/deployment-models/standalone/system-requirements/#server-or-instance-hardware
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      memory: "1Gi"
+
+  count: 1
+
+  volumeSize: 5Gi
+
+  # Pod Security Context for all Zookeeper pods.
+  podSecurityContext:
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+
+  # Container Security Context for all Zookeeper containers.
+  securityContext:
+    privileged: false
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    capabilities:
+      drop:
+        - ALL
+
+  nodeSelector:
+    cloud.google.com/gke-nodepool: zkpool
+
+# Control where uploaded files are stored for Dremio.
+# For more information, see https://docs.dremio.com/deployment/distributed-storage.html
+distStorage:
+  type: "gcp"
+
+  gcp:
+    bucketName: "raja-dremio-data"
+    path: "/dremio4"
+    authentication: "serviceAccountKeys"
+
+    # If using serviceAccountKeys, uncomment the section below, referencing the values from
+    # the service account credentials JSON file that you generated:
+    #
+    credentials:
+      projectId: dremio-ps
+      clientId: 11683110019552789185
+      clientEmail: raja-test@dremio-ps.iam.gserviceaccount.com
+      privateKeyId: 09e76f8efe7f712e087a1f96f1862427f677309b
+      privateKey: |-
+        -----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDm+K8cFX1VWc6G\n2a5NN8PB4cn8rJHF8EINMHlIc5A0F3qZqUy+VEG7B9VpJNQUKKW2ft1bhIuHZhsQ\nl79V9H/oFOQ9HA9bpiztACJAnFp6y8LWaJi/Y74wgi2YQ09uwxqD5vGawxf/BUGD\npf0sD+DdmC9TF4GxRXHPFw5WG25QWk4ur597asDJ/8rFecQm8grz7xT15EaP9nuK\nAGwGOadKcqqHAGZ8NeV5OH8bUN5t/l0DnZVZCpoLaK1Ykh1BHvq1kRWBpP/vAlpi\nT85RxNLLtMjGjld2HbtmsDVL6x4CWSsN6+1Hi4DhsIrUGJfgYcUKo/TdzQ05/GuJ\nw/nMQJQzAgMBAAECggEAE1mhPf6U5fokocqJ3kE+Prd+VxNUERusRPObLZU07xBK\nfqYe3lErwpII8Iqb0+aF35CoVdr4X4sP2GeGKZrWvmhFqNL5fGmjGOXqeLRApkn8\n1D6mEV63V9QIItn8xSBGT+egtSEEGSLlFrTozXC1G4t8536wKFxTiRB67H7W0pdd\ndfAyBx61L9G9oV03Z80hxdCAdB+qLp5/M1hWN0AJgnXCwKbnKdDyerpBQo1TEqKQ\npGDnb0t4f5DoTfM9AC9pUypuTFy1Whz82ksrFxxBa4UVW5OHrQ5iag/0JL27/zTg\n0PEBAdfeIgFVO89OGHPXVIMZcvq57DC2NqYLa0YDUQKBgQD4FZKxbYeunDkyB4g7\njbb55NrhMoU9VPCy7png8HUa7M+coLu16ysjTPPpR4ymPAMS3Nmiok2igSfOeey7\nH8AQDpguMZiWxRuEGZj80JQRW4Fm5O0enlNYqoDses7b75AxhnshUWqHuHJNjWVX\n2YsYIEa+jGCtkpmh8iTG8tnpEQKBgQDuV1P/LLIfa1lIy/ws0IEMffdODeuxQeQ+\nn/Hh2hkXqTp2WISfX+qYmQMZggztSt+arVlkopmiVE/AFHNPLjJvWKDx/+vhEhtK\n+cx1T+QCAJ/jAS1wHTDHGZsk4ebEWWH0GwUvs5luwf3QfbeRQq+c7fsc5zl2bz3v\nIfjzVG1JAwKBgGDeW5c4Q4Cks5ibZFCMt2PAPs8sIOaf4hScIi249qD60t4/zMvt\n9bwk8iCmtX67dB/LaJeedF39vINdDFjMvvwGFtoCt6g3ctUUAa7F6usUJeT9grEv\n9S9r9EdidJ9gXZdZAX8zATvZg5hQm7+/zBYxlC4XNjDQS3j2yfF9JiVhAoGBAKvO\nk6QcCgKQFXpeYNfFLWFd5EmFy2KphuiFz4zo9LGTsarhwChKsgdyNUPL9ZmQIYOU\ndh4PAAR+Fkb19vEa8gxFrS8FNnm13aq8SuA9yLSQ0rCGhsSMpj6/fJCnrvvXGr8m\nQyTRqEao3FfQZ+T0Vzcebae2Hjv7kH+y04xETcsVAoGAZmjn2bMNoY1YgYx8u1R/\nuAHgkivDgmUpjy9dwR6KnzCEcONc+myFbN89STyW3QbXV2qx4kDEkPn/CwlU3o9N\npqus3vCQ8wvwstZEv1d1zeUyxBoioCQyxWV5CZlbTY8Va8T2Tb/CtUQhZ8D5zLek\nglaDpmqxZuEt4PE+bExCDTw=\n-----END PRIVATE KEY-----\n
+
+# Resources allocated to init containers for coordinator and executor pods.
+initResources:
+  requests:
+    cpu: 10m
+    memory: 10Mi
+  limits:
+    memory: 10Mi
+
+# Extra Volumes
+# Array to add extra volumes to all Dremio resources.
+extraVolumes: []
+
+# Extra Volume Mounts
+# Array to add extra volume mounts to all Dremio resources, normally used in conjunction wtih extraVolumes.
+extraVolumeMounts: []
+
+# Extra env variables to add to all Dremio resources.
+extraEnvs: []
+
+
+# Dremio Service
+# The dremio-client service exposes the service for access outside of the Kubernetes cluster.
+service:
+  type: LoadBalancer
+
+
+# Catalog server configuration
+catalog:
+  image:
+    repository: quay.io/dremio/dremio-ee-catalog-server-preview
+    tag: 25.2.0
+  imagePullSecrets:
+    - name: raja-dremio-pull-secret
+  fullnameOverride: dremio-catalog-server
+  versionStoreType: MONGODB2
+  resources:
+    requests:
+      cpu: "4"
+      memory: "8Gi"
+    limits:
+      memory: "8Gi"
+  service:
+    type: ClusterIP
+    ports:
+      - name: catalog-http
+        number: 19120
+      - name: catalog-grpc
+        number: 9000
+  managementService:
+    portName: catalog-mgmt
+    portNumber: 9001
+  extraServices:
+    - type: LoadBalancer
+      nameSuffix: "-ext"
+      ports:
+        - name: catalog-http
+          number: 19120
+  authentication:
+    enabled: true
+  authorization:
+    enabled: false # Dremio Catalog uses its own authorization mechanism
+  mongodb:
+    name: dremio-catalog
+    connectionString: "mongodb+srv://mongodb-headless.{{ .Release.Namespace }}.svc.cluster.local/?tls=false"
+    secret:
+      name: "mongodb"
+      username: ""
+      password: mongodb-passwords
+  catalog:
+    enabled: false
+  podLabels:
+    app: dremio-catalog
+    app-group: dremio
+  advancedConfig:
+    lakehouse.catalog.authorization.type: RBAC
+    quarkus.grpc.clients."roles".host: "dremio-master-0.dremio-cluster-pod"
+    quarkus.grpc.clients."roles".port: "45679"
+    quarkus.grpc.server.port: 9000
+    quarkus.mongodb.credentials.username: dremio
+    quarkus.oidc.jwks-path: "http://dremio-master-0.dremio-cluster-pod:9047/oauth/discovery/jwks.json"
+ 
+  nodeSelector:
+    cloud.google.com/gke-nodepool: catpool
+
+# MongoDB configuration
+mongodb:
+  fullnameOverride: mongodb
+  architecture: replicaset
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 2000m
+      memory: 1Gi
+    limits:
+      memory: 1Gi
+  arbiter:
+    enabled: true
+  persistence:
+    size: 8Gi
+  auth:
+    usernames:
+      - dremio
+    databases:
+      - dremio-catalog
+
+  nodeSelector:
+    cloud.google.com/gke-nodepool: catpool
+
+# Open Search configuration.
+opensearch:
+  enabled: false
+
+  # Pre-install hook job parameters.
+  preInstallJobName: opensearch-pre-install
+  preInstallServiceAccountName: dremio-opensearch-pre-install
+  tlsCertsSecretName: opensearch-tls-certs
+  rootCertificateFileName: root-ca
+  certificateFileName: cert
+  # Set to true to use your own certificate stored in the above secret.
+  disableTlsCertGeneration: false
+  # Comma-separated domain names to include in the cert, use NAMESPACE as
+  # a placeholder for release namespace.
+  domainNames: opensearch-cluster-master.NAMESPACE.svc.cluster.local
+  # The certificate directory in dremio container.
+  dremioCertsMountPath: /opt/dremio/opensearch-tls
+
+  # Default max_map_count on Linux is 65536, OpenSearch requires 2^18.
+  #   https://github.com/opensearch-project/OpenSearch/blob/92d7fe89755dc87cbc16e220473c7faae055afd6/server/src/main/java/org/opensearch/bootstrap/BootstrapChecks.java#L467
+  #   https://git.ti.com/cgit/ti-linux-kernel/ti-linux-kernel/tree/Documentation/sysctl/vm.txt?id=5e7719058079a1423ccce56148b0aaa56b2df821
+  sysctlInit:
+    enabled: true
+  sysctlVmMaxMapCount: 524288
+
+  # This enables basic auth for http calls to OpenSearch, useful for debugging opensearch
+  # from inside its pod with curl.
+  basic_auth_http_enabled: false
+  extraEnvs:
+    # Disable demo security config.
+    - name: DISABLE_INSTALL_DEMO_CONFIG
+      value: "true"
+  replicas: 1
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "128Mi"
+    limits:
+      memory: "128Mi"
+  initResources:
+    requests:
+       cpu: "25m"
+       memory: "128Mi"
+    limits:
+       memory: "128Mi"
+  sidecarResources:
+    requests:
+      cpu: "25m"
+      memory: "128Mi"
+    limits:
+      memory: "128Mi"
+
+  # Volumes and volume mounts, certificates for TLS go here.
+  extraVolumes:
+    - name: certs
+      secret:
+        # This matches: tlsCertsSecretName.
+        secretName: opensearch-tls-certs
+  extraVolumeMounts:
+    - name: certs
+      mountPath: /usr/share/opensearch/config/certs
+      readOnly: true
+
+  securityConfig:
+    # Secret with securiuty config.
+    configSecret: opensearch-security-config
+    # Secret with role mappings.
+    rolesMappingSecret: opensearch-roles-mapping
+
+  config:
+    log4j2.properties: |
+      status = error
+
+      appender.console.type = Console
+      appender.console.name = console
+      appender.console.layout.type = PatternLayout
+      appender.console.layout.pattern = [%d{ISO8601}][%-5p][%-25c{1.}] [%node_name]%marker %m%n
+
+      rootLogger.level = info
+      rootLogger.appenderRef.console.ref = console
+
+    opensearch.yml: |
+      # Same as the first part of the domain name in domainNames.
+      cluster.name: opensearch-cluster
+
+      # All nodes have the same roles.
+      node.roles: [ cluster_manager, data, ml, ingest ]
+
+      # Bind to all interfaces because it is not known what IP address will be assigned to OpenSearch.
+      network.host: 0.0.0.0
+
+      # Disable running models on dedicated 'ml' nodes.
+      plugins.ml_commons.only_run_on_ml_node: false
+
+      # Search thread pool parameters.
+      thread_pool.search.queue_size: 1000
+      thread_pool.search.size: 30
+
+      ######## Start OpenSearch Security Configuration ########
+      # Certificate names match certificateFileName.
+      plugins.security.disabled: false
+      # Node-to-node TLS.
+      plugins.security.ssl.transport.pemcert_filepath: certs/cert.pem
+      plugins.security.ssl.transport.pemkey_filepath: certs/cert-key.pem
+      plugins.security.ssl.transport.pemtrustedcas_filepath: certs/root-ca.pem
+      plugins.security.ssl.transport.enforce_hostname_verification: false
+      # Http TLS.
+      plugins.security.ssl.http.enabled: true
+      plugins.security.ssl.http.pemcert_filepath: certs/cert.pem
+      plugins.security.ssl.http.pemkey_filepath: certs/cert-key.pem
+      plugins.security.ssl.http.pemtrustedcas_filepath: certs/root-ca.pem
+      plugins.security.allow_unsafe_democertificates: false
+      plugins.security.allow_default_init_securityindex: true
+      plugins.security.authcz.admin_dn: ['CN=kirk,OU=client,O=client,L=test,C=de']
+      plugins.security.audit.type: internal_opensearch
+      plugins.security.enable_snapshot_restore_privilege: true
+      plugins.security.check_snapshot_restore_write_privileges: true
+      plugins.security.restapi.roles_enabled: [all_access, security_rest_api_access]
+      plugins.security.system_indices.enabled: true
+      # Allowed system indices.
+      plugins.security.system_indices.indices: [.plugins-ml-agent, .plugins-ml-config, .plugins-ml-connector,
+        .plugins-ml-controller, .plugins-ml-model-group, .plugins-ml-model, .plugins-ml-task,
+        .plugins-ml-conversation-meta, .plugins-ml-conversation-interactions, .plugins-ml-memory-meta,
+        .plugins-ml-memory-message, .plugins-ml-stop-words, .opendistro-alerting-config,
+        .opendistro-alerting-alert*, .opendistro-anomaly-results*, .opendistro-anomaly-detector*,
+        .opendistro-anomaly-checkpoints, .opendistro-anomaly-detection-state, .opendistro-reports-*,
+        .opensearch-notifications-*, .opensearch-notebooks, .opensearch-observability, .ql-datasources,
+        .opendistro-asynchronous-search-response*, .replication-metadata-store, .opensearch-knn-models,
+        .geospatial-ip2geo-data*, .plugins-flow-framework-config, .plugins-flow-framework-templates,
+        .plugins-flow-framework-state]
+      ######## End OpenSearch Security Configuration ########
+
+imagePullSecrets:
+  - raja-dremio-pull-secret
