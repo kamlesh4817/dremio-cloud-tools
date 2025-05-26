@@ -19,7 +19,7 @@
 # the cluster.
 
 image: quay.io/dremio/dremio-ee
-imageTag: 25.2.0
+imageTag: 25.2.2
 
 
 # Annotations, labels, node selectors, and tolerations
@@ -45,10 +45,10 @@ coordinator:
   # See https://docs.dremio.com/current/get-started/cluster-deployments/deployment-models/standalone/system-requirements/#server-or-instance-hardware
   resources:
     requests:
-      cpu: "4"
-      memory: "20Gi"
+      cpu: "14"
+      memory: "50Gi"
     limits:
-      memory: "20Gi"
+      memory: "50Gi"
 
   count: 0
 
@@ -148,16 +148,16 @@ executor:
   # See https://docs.dremio.com/current/get-started/cluster-deployments/deployment-models/standalone/system-requirements/#server-or-instance-hardware
   resources:
     requests:
-      cpu: "6"
-      memory: "25Gi"
+      cpu: "14"
+      memory: "50Gi"
     limits:
-      memory: "25Gi"
+      memory: "50Gi"
 
   # Engines
   # Engine names must be 47 characters or less and be lowercase alphanumeric characters or '-'.
   # Note: The number of executor pods will be the length of the array below * count.
   engines: ["default"]
-  count: 1
+  count: 3
 
   # Executor volume size.
   volumeSize: 128Gi
@@ -249,8 +249,8 @@ distStorage:
   type: "gcp"
 
   gcp:
-    bucketName: "raja-dremio-data"
-    path: "/dremio4"
+    bucketName: "kamlesh-tam"
+    path: "/catalog-demo"
     authentication: "serviceAccountKeys"
 
     # If using serviceAccountKeys, uncomment the section below, referencing the values from
@@ -258,9 +258,9 @@ distStorage:
     #
     credentials:
       projectId: dremio-ps
-      clientId: 11683110019552789185
-      clientEmail: raja-test@dremio-ps.iam.gserviceaccount.com
-      privateKeyId: 09e76f8efe7f712e087a1f96f1862427f677309b
+      clientId: 106915708888147521469
+      clientEmail: kamlesh-tam-service-account@dremio-ps.iam.gserviceaccount.com
+      privateKeyId: 495962e3050a5c4608b4447d4063c5977849a350
       privateKey: |-
         -----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDm+K8cFX1VWc6G\n2a5NN8PB4cn8rJHF8EINMHlIc5A0F3qZqUy+VEG7B9VpJNQUKKW2ft1bhIuHZhsQ\nl79V9H/oFOQ9HA9bpiztACJAnFp6y8LWaJi/Y74wgi2YQ09uwxqD5vGawxf/BUGD\npf0sD+DdmC9TF4GxRXHPFw5WG25QWk4ur597asDJ/8rFecQm8grz7xT15EaP9nuK\nAGwGOadKcqqHAGZ8NeV5OH8bUN5t/l0DnZVZCpoLaK1Ykh1BHvq1kRWBpP/vAlpi\nT85RxNLLtMjGjld2HbtmsDVL6x4CWSsN6+1Hi4DhsIrUGJfgYcUKo/TdzQ05/GuJ\nw/nMQJQzAgMBAAECggEAE1mhPf6U5fokocqJ3kE+Prd+VxNUERusRPObLZU07xBK\nfqYe3lErwpII8Iqb0+aF35CoVdr4X4sP2GeGKZrWvmhFqNL5fGmjGOXqeLRApkn8\n1D6mEV63V9QIItn8xSBGT+egtSEEGSLlFrTozXC1G4t8536wKFxTiRB67H7W0pdd\ndfAyBx61L9G9oV03Z80hxdCAdB+qLp5/M1hWN0AJgnXCwKbnKdDyerpBQo1TEqKQ\npGDnb0t4f5DoTfM9AC9pUypuTFy1Whz82ksrFxxBa4UVW5OHrQ5iag/0JL27/zTg\n0PEBAdfeIgFVO89OGHPXVIMZcvq57DC2NqYLa0YDUQKBgQD4FZKxbYeunDkyB4g7\njbb55NrhMoU9VPCy7png8HUa7M+coLu16ysjTPPpR4ymPAMS3Nmiok2igSfOeey7\nH8AQDpguMZiWxRuEGZj80JQRW4Fm5O0enlNYqoDses7b75AxhnshUWqHuHJNjWVX\n2YsYIEa+jGCtkpmh8iTG8tnpEQKBgQDuV1P/LLIfa1lIy/ws0IEMffdODeuxQeQ+\nn/Hh2hkXqTp2WISfX+qYmQMZggztSt+arVlkopmiVE/AFHNPLjJvWKDx/+vhEhtK\n+cx1T+QCAJ/jAS1wHTDHGZsk4ebEWWH0GwUvs5luwf3QfbeRQq+c7fsc5zl2bz3v\nIfjzVG1JAwKBgGDeW5c4Q4Cks5ibZFCMt2PAPs8sIOaf4hScIi249qD60t4/zMvt\n9bwk8iCmtX67dB/LaJeedF39vINdDFjMvvwGFtoCt6g3ctUUAa7F6usUJeT9grEv\n9S9r9EdidJ9gXZdZAX8zATvZg5hQm7+/zBYxlC4XNjDQS3j2yfF9JiVhAoGBAKvO\nk6QcCgKQFXpeYNfFLWFd5EmFy2KphuiFz4zo9LGTsarhwChKsgdyNUPL9ZmQIYOU\ndh4PAAR+Fkb19vEa8gxFrS8FNnm13aq8SuA9yLSQ0rCGhsSMpj6/fJCnrvvXGr8m\nQyTRqEao3FfQZ+T0Vzcebae2Hjv7kH+y04xETcsVAoGAZmjn2bMNoY1YgYx8u1R/\nuAHgkivDgmUpjy9dwR6KnzCEcONc+myFbN89STyW3QbXV2qx4kDEkPn/CwlU3o9N\npqus3vCQ8wvwstZEv1d1zeUyxBoioCQyxWV5CZlbTY8Va8T2Tb/CtUQhZ8D5zLek\nglaDpmqxZuEt4PE+bExCDTw=\n-----END PRIVATE KEY-----\n
 
@@ -296,7 +296,7 @@ catalog:
     repository: quay.io/dremio/dremio-ee-catalog-server-preview
     tag: 25.2.0
   imagePullSecrets:
-    - name: raja-dremio-pull-secret
+    - name: kamlesh-dremio-pull-secret
   fullnameOverride: dremio-catalog-server
   versionStoreType: MONGODB2
   resources:
@@ -505,4 +505,4 @@ opensearch:
       ######## End OpenSearch Security Configuration ########
 
 imagePullSecrets:
-  - raja-dremio-pull-secret
+  - kamlesh-dremio-pull-secret
